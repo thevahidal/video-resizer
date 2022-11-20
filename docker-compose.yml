@@ -1,0 +1,43 @@
+version: '3.7'
+services:
+  app:
+    image: video_resizer
+    build: .
+    command: "poetry run python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - 8000:8000
+    volumes:
+      - .:/app
+    env_file:
+      - .env.docker
+    depends_on:
+      - db
+  
+  db:
+    image: postgres:12.0-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - .env.db
+
+  celery:
+    image: video_resizer
+    build: .
+    command: "poetry run celery -A video_resizer worker -l info"
+    volumes:
+      - .:/app
+    env_file:
+      - .env.docker
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    restart: on-failure
+    expose:
+      - 6379
+
+
+volumes:
+  postgres_data:
